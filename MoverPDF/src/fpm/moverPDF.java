@@ -1,7 +1,9 @@
 package fpm;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,6 +12,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 
@@ -17,48 +20,41 @@ public class moverPDF {
 
 	private static String pattern = "";
 	private static String path = "";
-	private static String operador = "";
+	private static String prefijo = "";
+	private static String ficheroPadre = "";
+	private static String separador = "";
+	private static HashMap<String, String> listaPadre = new HashMap<String, String>();
 
-	public static String getPattern() {
-		return pattern;
-	}
-
-	public static void setPattern(String pattern) {
-		moverPDF.pattern = pattern;
-	}
-
-	public static String getPath() {
-		return path;
-	}
-
-	public static void setPath(String path) {
-		moverPDF.path = path;
-	}
-
-	public static void main(String[] args) {
+	private static void main(String[] args) {
 		System.out.println("inicio");
 
 		init(args);
 
 		log("Inicio de la ejecución");
 
+		tratamientoCarpeta();
+		log("Fin de la ejecución.");
+		System.out.println("fin");
+	}
+
+	private static void tratamientoCarpeta() {
 		ArrayList<File> lista = listaPDF(getPath());
 		ArrayList<String> listaExp = new ArrayList<String>();
 		System.out.println("número de ficheros: " + lista.size());
 		Iterator<File> f = lista.iterator();
 		int movidos = 0;
-		String nameDir = "";
 		while (f.hasNext()) {
 			File file = f.next();
 			try {
-				System.out.println(getName(file.getName()) + "  -----   " + getExtension(file.getName()));
-				// genera la carpeta cada 100 expedientes
+				//System.out.println(getName(file.getName()) + "  -----   " + getExtension(file.getName()));
+				/* genera la carpeta cada 100 expedientes
 				if ((movidos % 100) == 0){
 					nameDir = getPath() + System.getProperty("file.separator") + getOperador() + (int)(movidos % 100);
-				}
-				//String nameDir = getPath() + System.getProperty("file.separator") + getDir(getExp(file.getName()));
+				}*/
 				String nameExp = getExp(file.getName()).replace("_", "/");
-				if (nameDir != null && nameDir.length() != 0) {
+				String expPadre = damePadre(nameExp);
+				if (expPadre.length() != 0){
+					String nameDir = getPath() + System.getProperty("file.separator") + expPadre.replace("/","_");
 					File dir = new File(nameDir);
 					//System.out.println("Carpeta : " + dir.getAbsolutePath());
 					if (!dir.exists())
@@ -83,8 +79,12 @@ public class moverPDF {
 			}
 		}
 		log("Ficheros tratados : " + lista.size() + " Ficheros movidos : " + movidos);
-		log("Fin de la ejecución.");
-		System.out.println("fin");
+	}
+
+	private static String damePadre(String exp) {
+		String padre = getListaPadre().get(exp);
+		if (padre == null) padre ="";
+		return padre;
 	}
 
 	private static void init(String[] args) {
@@ -109,9 +109,20 @@ public class moverPDF {
 			log("pattern: " + getPattern());
 			//System.out.println("pattern: " + getPattern());
 		}
-		if (properties.getProperty("operador") != null) {
-			setOperador(properties.getProperty("operador"));
-			log("operador: " + getPattern());
+		if (properties.getProperty("prefijo") != null) {
+			setPrefijo(properties.getProperty("prefijo"));
+			log("prefijo: " + getPattern());
+			//System.out.println("pattern: " + getPattern());
+		}	
+		if (properties.getProperty("ficheroPadre") != null) {
+			setFicheroPadre(properties.getProperty("ficheroPadre"));
+			setListaPadre(leerCSVPadres(getFicheroPadre()));
+			log("ficheroPadre: " + getPattern());
+			//System.out.println("pattern: " + getPattern());
+		}
+		if (properties.getProperty("separador") != null) {
+			setSeparador(properties.getProperty("separador"));
+			log("separador: " + getPattern());
 			//System.out.println("pattern: " + getPattern());
 		}		
 	}
@@ -152,7 +163,7 @@ public class moverPDF {
 	 * @param path
 	 * @return
 	 */
-	public static ArrayList<File> listaPDF(String path) {
+	private static ArrayList<File> listaPDF(String path) {
 		ArrayList<File> lista = new ArrayList<File>();
 		File folder = new File(path);
 		File[] listOfFiles = folder.listFiles();
@@ -233,13 +244,76 @@ public class moverPDF {
 			System.out.println(e.toString());
 		}
 	}
-
-	public static String getOperador() {
-		return operador;
+	
+	/**
+	 * carga la lista de expedientes y sus padres
+	 * @param csvFile
+	 * @return
+	 */
+	private static HashMap<String, String> leerCSVPadres(String csvFile){
+		HashMap<String, String> listaPadreAux = new HashMap<String, String>();
+        try {
+        	BufferedReader br = new BufferedReader(new FileReader(csvFile));
+        	String line;
+            while ((line = br.readLine()) != null) {
+            	//primero tenemos el expediente y luego el padre
+                String[] expedientes = line.split(getSeparador());
+                listaPadreAux.put(expedientes[0], expedientes[1]);
+            }
+            br.close();
+        } catch (Exception e) {
+            log(e.toString());
+        }
+        return listaPadreAux;
+	}
+	
+	private static String getPattern() {
+		return pattern;
 	}
 
-	public static void setOperador(String operador) {
-		moverPDF.operador = operador;
+	private static void setPattern(String pattern) {
+		moverPDF.pattern = pattern;
+	}
+
+	private static String getPath() {
+		return path;
+	}
+
+	private static void setPath(String path) {
+		moverPDF.path = path;
+	}
+
+	private static HashMap<String, String> getListaPadre() {
+		return listaPadre;
+	}
+
+	private static void setListaPadre(HashMap<String, String> listaPadre) {
+		moverPDF.listaPadre = listaPadre;
+	
+	}
+	
+	private static String getPrefijo() {
+		return prefijo;
+	}
+
+	private static void setPrefijo(String prefijo) {
+		moverPDF.prefijo = prefijo;
+	}
+
+	private static String getFicheroPadre() {
+		return ficheroPadre;
+	}
+
+	private static void setFicheroPadre(String ficheroPadre) {
+		moverPDF.ficheroPadre = ficheroPadre;
+	}
+
+	private static String getSeparador() {
+		return separador;
+	}
+
+	private static void setSeparador(String separador) {
+		moverPDF.separador = separador;
 	}
 
 }
