@@ -25,7 +25,7 @@ public class moverPDF {
 	private static String separador = "";
 	private static HashMap<String, String> listaPadre = new HashMap<String, String>();
 
-	private static void main(String[] args) {
+	public static void main(String[] args) {
 		System.out.println("inicio");
 
 		init(args);
@@ -66,9 +66,7 @@ public class moverPDF {
 					Files.move(originalPath, moved, StandardCopyOption.REPLACE_EXISTING);
 					movidos++;
 					listaExp.add(nameExp);
-				}
-				volcadoExpedientes(listaExp);
-
+				}				
 			} catch (Exception e) {
 				try {
 					log(e.toString());
@@ -78,15 +76,25 @@ public class moverPDF {
 				}
 			}
 		}
+		volcadoExpedientes(listaExp);
 		log("Ficheros tratados : " + lista.size() + " Ficheros movidos : " + movidos);
 	}
 
+	/**
+	 * devuelve el expediente padre
+	 * @param exp
+	 * @return
+	 */
 	private static String damePadre(String exp) {
 		String padre = getListaPadre().get(exp);
-		if (padre == null) padre ="";
+		if (padre == null) padre ="no_informado";
 		return padre;
 	}
 
+	/**
+	 * inicializa las propiedades
+	 * @param args
+	 */
 	private static void init(String[] args) {
 		log("inicializa");
 		Properties properties = new Properties();
@@ -113,18 +121,20 @@ public class moverPDF {
 			setPrefijo(properties.getProperty("prefijo"));
 			log("prefijo: " + getPattern());
 			//System.out.println("pattern: " + getPattern());
-		}	
+		}
+		//el separador se debe inicializar antes del ficheroPadre
+		if (properties.getProperty("separador") != null) {
+			setSeparador(properties.getProperty("separador"));
+			log("separador: " + getPattern());
+			//System.out.println("pattern: " + getPattern());
+		}
 		if (properties.getProperty("ficheroPadre") != null) {
 			setFicheroPadre(properties.getProperty("ficheroPadre"));
 			setListaPadre(leerCSVPadres(getFicheroPadre()));
 			log("ficheroPadre: " + getPattern());
 			//System.out.println("pattern: " + getPattern());
 		}
-		if (properties.getProperty("separador") != null) {
-			setSeparador(properties.getProperty("separador"));
-			log("separador: " + getPattern());
-			//System.out.println("pattern: " + getPattern());
-		}		
+		
 	}
 
 
@@ -135,6 +145,7 @@ public class moverPDF {
 	 */
 	private static void volcadoExpedientes(ArrayList<String> listaExp) {
 		File exp = new File("listaExp.txt");
+		log("volcado de expedientes, nº = " + listaExp.size());
 		try {
 			// Si el archivo no existe, se crea!
 			if (!exp.exists()) {
@@ -177,12 +188,22 @@ public class moverPDF {
 		return lista;
 	}
 
+	/**
+	 * devuelve la extensión del fichero
+	 * @param fileName
+	 * @return
+	 */
 	private static String getExtension(String fileName) {
 		String extension;
 		extension = fileName.substring(fileName.lastIndexOf('.') + 1);
 		return extension;
 	}
 
+	/**
+	 * devuelve el nombre del fichero
+	 * @param fileName
+	 * @return
+	 */
 	private static String getName(String fileName) {
 		String name;
 		name = fileName.substring(0, fileName.lastIndexOf('.'));
